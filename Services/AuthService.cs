@@ -201,6 +201,101 @@ namespace ShopSphere.Services
 			}
 		}
 
+		// Refresh Token Service
+		public async Task<AuthResult> RefreshTokenAsync(string refreshToken)
+		{
+			try
+			{
+				// Find user with this refresh token
+				var user = await _userManager.Users
+					.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
+				if (user == null)
+				{
+					return new AuthResult
+					{
+						Success = false,
+						Message = "Invalid refresh token",
+						Errors = new List<string> { "Token not found" }
+					};
+				}
+
+				if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+				{
+					return new AuthResult
+					{
+						Success = false,
+						Message = "Refresh token expired",
+						Errors = new List<string> { "Token expired" }
+					};
+				}
+
+				// Generate new tokens
+				var newToken = await GenerateJwtTokenAsync(user);
+				var newRefreshToken = GenerateRefreshToken();
+
+				// Update refresh token
+				user.RefreshToken = newRefreshToken;
+				user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationInDays);
+				await _userManager.UpdateAsync(user);
+
+				// Get user roles
+				var roles = await _userManager.GetRolesAsync(user);
+
+				return new AuthResult
+				{
+					Success = true,
+					Message = "Token refreshed successfully",
+					Data = new LoginResponseDto
+					{
+						Token = newToken,
+						RefreshToken = newRefreshToken,
+						Expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
+						UserId = user.Id,
+						Email = user.Email!,
+						Username = user.UserName!,
+						Roles = roles.ToList()
+					}
+				};
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error during token refresh");
+				return new AuthResult
+				{
+					Success = false,
+					Message = "An error occurred during token refresh",
+					Errors = new List<string> { ex.Message }
+				};
+			}
+		}
+		
+		// Logout Service
+		public async Task<bool> LogoutAsync(string userId)
+		{
+			try
+			{
+				var user = await _userManager.FindByIdAsync(userId);
+				if (user != null)
+				{
+					// Invalidate refresh token
+					user.RefreshToken = null;
+					user.RefreshTokenExpiryTime = null;
+					await _userManager.UpdateAsync(user);
+
+					_logger.LogInformation($"User {user.Email} logged out");
+					return true;
+				}
+				return false;
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error during logout");
+				return false;
+			}
+		}
+
+
 		// Generate secure JWT token
 		private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
 		{

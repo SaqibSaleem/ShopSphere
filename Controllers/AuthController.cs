@@ -55,5 +55,52 @@ namespace ShopSphere.Controllers
 			return Ok(new { result.Message, result.Data });
 		}
 
+		// Logout endpoint
+		[Route("Logout")]
+		[HttpGet]
+		[Authorize]
+		public async Task<IActionResult> Logout()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+			if (string.IsNullOrEmpty(userId))
+			{
+				return BadRequest(new { Message = "User not found" });
+			}
+
+			var result = await _authService.LogoutAsync(userId);
+
+			if (!result)
+			{
+				return BadRequest(new { Message = "Logout failed" });
+			}
+
+			return Ok(new { Message = "Logged out successfully" });
+		}
+
+		[Route("GetCurrentUser")]
+		[HttpGet]
+		//[Authorize]
+		public IActionResult GetCurrentUser()
+		{
+			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+			var email = User.FindFirstValue(ClaimTypes.Email);
+			var username = User.FindFirstValue(ClaimTypes.Name);
+			var firstName = User.FindFirstValue("firstName");
+			var lastName = User.FindFirstValue("lastName");
+			var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+
+			return Ok(new
+			{
+				UserId = userId,
+				Email = email,
+				Username = username,
+				FirstName = firstName,
+				LastName = lastName,
+				Roles = roles
+			});
+		}
+
+
 	}
 }
