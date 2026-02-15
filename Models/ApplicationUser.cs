@@ -9,6 +9,7 @@ namespace ShopSphere.Models
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? LastLoginAt { get; set; }
 		public bool IsActive { get; set; } = true;
+		public string? ProfilePicture { get; set; }
 
 		// Optional: Add refresh token for JWT
 		public string? RefreshToken { get; set; }
