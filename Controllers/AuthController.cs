@@ -35,6 +35,25 @@ namespace ShopSphere.Controllers
 			}
 			return Ok(new { message = result.Message, result.Data });
 		}
-		
+		// Login endpoint
+		[Route("Login")]
+		[HttpPost]
+		public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+		{
+			if (!ModelState.IsValid)
+			{
+				return BadRequest(ModelState);
+			}
+
+			var result = await _authService.LoginAsync(loginDto);
+
+			if (!result.Success)
+			{
+				return Unauthorized(new { result.Message, result.Errors });
+			}
+
+			return Ok(new { result.Message, result.Data });
+		}
+
 	}
 }

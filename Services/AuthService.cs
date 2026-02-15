@@ -110,6 +110,97 @@ namespace ShopSphere.Services
 			}
 		}
 
+		// Login Service
+		public async Task<AuthResult> LoginAsync(LoginDto loginDto)
+		{
+			try
+			{
+				// Find user by email or username
+				var user = await _userManager.FindByEmailAsync(loginDto.EmailOrUsername);
+				if (user == null)
+				{
+					user = await _userManager.FindByNameAsync(loginDto.EmailOrUsername);
+				}
+
+				if (user == null)
+				{
+					return new AuthResult
+					{
+						Success = false,
+						Message = "Invalid credentials",
+						Errors = new List<string> { "User not found" }
+					};
+				}
+
+				if (!user.IsActive)
+				{
+					return new AuthResult
+					{
+						Success = false,
+						Message = "Account is deactivated",
+						Errors = new List<string> { "Account is not active" }
+					};
+				}
+
+				// Check password
+				var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+
+				if (!result.Succeeded)
+				{
+					return new AuthResult
+					{
+						Success = false,
+						Message = "Invalid credentials",
+						Errors = new List<string> { "Invalid password" }
+					};
+				}
+
+				// Update last login
+				user.LastLoginAt = DateTime.UtcNow;
+				await _userManager.UpdateAsync(user);
+
+				// Generate tokens
+				var token = await GenerateJwtTokenAsync(user);
+				var refreshToken = GenerateRefreshToken();
+
+				// Save refresh token
+				user.RefreshToken = refreshToken;
+				user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationInDays);
+				await _userManager.UpdateAsync(user);
+
+				// Get user roles
+				var roles = await _userManager.GetRolesAsync(user);
+
+				_logger.LogInformation($"User {user.Email} logged in successfully");
+
+				return new AuthResult
+				{
+					Success = true,
+					Message = "Login successful",
+					Data = new LoginResponseDto
+					{
+						Token = token,
+						RefreshToken = refreshToken,
+						Expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes),
+						UserId = user.Id,
+						Email = user.Email!,
+						Username = user.UserName!,
+						Roles = roles.ToList()
+					}
+				};
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error during login");
+				return new AuthResult
+				{
+					Success = false,
+					Message = "An error occurred during login",
+					Errors = new List<string> { ex.Message }
+				};
+			}
+		}
+
 		// Generate secure JWT token
 		private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
 		{

@@ -9,7 +9,7 @@ namespace ShopSphere.Services
 	public interface IAuthService
 	{
 		Task<AuthResult> RegisterAsync(RegisterDto registerDto);
-		//Task<AuthResult> LoginAsync(LoginDto loginDto);
+		Task<AuthResult> LoginAsync(LoginDto loginDto);
 		//Task<AuthResult> RefreshTokenAsync(string refreshToken);
 		//Task<bool> LogoutAsync(string userId);
 	}
