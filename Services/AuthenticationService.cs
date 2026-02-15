@@ -10,8 +10,8 @@ namespace ShopSphere.Services
 	{
 		Task<AuthResult> RegisterAsync(RegisterDto registerDto);
 		Task<AuthResult> LoginAsync(LoginDto loginDto);
-		//Task<AuthResult> RefreshTokenAsync(string refreshToken);
-		//Task<bool> LogoutAsync(string userId);
+		Task<AuthResult> RefreshTokenAsync(string refreshToken);
+		Task<bool> LogoutAsync(string userId);
 	}
 
 	public class AuthResult
