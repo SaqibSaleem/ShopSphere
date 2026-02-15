@@ -80,7 +80,7 @@ namespace ShopSphere.Controllers
 
 		[Route("GetCurrentUser")]
 		[HttpGet]
-		//[Authorize]
+		[Authorize]
 		public IActionResult GetCurrentUser()
 		{
 			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
